@@ -1,77 +1,92 @@
-#include<stdio.h>
-#include<windows.h>
+#include <stdio.h>
 #include <string.h>
-#include<unistd.h>>
+#include <unistd.h>
 
-typedef int (*AddFunc1)(int, int);            //defines a function type
+// Define a general function pointer type that accepts a void pointer argument
+typedef void (*FuncPointer)(void*);
 
-int add(int a, int b) {                       // Function that performs addition
-    return a + b;
-}
-
-
+// Structure to hold function name, function pointer, and argument
 typedef struct {
-    char name[50];                               // Structure to hold function information i.e name, pointer, and argument
-    AddFunc1 func;
-    int arg1;
-    int arg2;
+    char name[50];
+    FuncPointer func;
+    void* arg;
 } FunctionRegistry;
 
-
 // Function to register a function pointer along with its name and arguments
-void registerFunction(FunctionRegistry *registry, int *size, const char *name, AddFunc1 func, int arg1, int arg2) {
-    strcpy(registry[*size].name, name);
-    registry[*size].func = func;
-    registry[*size].arg1 = arg1;
-    registry[*size].arg2 = arg2;
-    (*size)++;
+void registerFunction(FunctionRegistry *registry, int *size, const char *name, FuncPointer func, void* arg) {
+    strcpy(registry[*size].name, name);  // Copy function name to the registry
+    registry[*size].func = func;         // Store function pointer
+    registry[*size].arg = arg;           // Store function argument
+    (*size)++;                           // Increment the registry size
 }
-
 
 // Function to get a function pointer by name and execute it with its arguments
 void executeFunction(FunctionRegistry *registry, int size, const char *name) {
-    for (int i = 0; i < size; i++) {
-        if (strcmp(registry[i].name, name) == 0) {
-            int result = registry[i].func(registry[i].arg1, registry[i].arg2);
-            printf("The result of %s is: %d\n", name, result);
+    for (int i = 0; i < size; i++) {     // Loop through the registry
+        if (strcmp(registry[i].name, name) == 0) {  // Compare function names
+            registry[i].func(registry[i].arg);  // Call the function with its argument
             return;
         }
     }
-    printf("Function not found.\n", name);
+    printf("Function %s not found.\n", name);  // Print message if function not found
 }
-    
-    
-    // Function to call each registered function after a delay
-void callFunction(FunctionRegistry *registry, int size, int delay){
-    for (int i = 0; i < size; i++) {
-        int result = registry[i].func(registry[i].arg1, registry[i].arg2);
-        printf("The result of %s is: %d\n", registry[i].name, result);
-        sleep(delay);
+
+// Function to call each registered function after a delay
+void callFunction(FunctionRegistry *registry, int size, int delay) {
+    for (int i = 0; i < size; i++) {     // Loop through the registry
+        registry[i].func(registry[i].arg);  // Call the function with its argument
+        sleep(delay);                    // Delay between calls
     }
 }
 
-int main() {
-    // Array to hold registered functions and size 
+// Structure to hold a float and an integer
+typedef struct {
+    float f;
+    int i;
+} FloatIntArgs;
 
+// function to demonstrate use of float and struct
+void printFloatInt(void* args) {
+    FloatIntArgs* fiArgs = (FloatIntArgs*)args;
+    printf("Float: %f, Int: %d\n", fiArgs->f, fiArgs->i);
+}
+
+// functions with different signature
+void add(void* args) {
+    int* intArgs = (int*)args;
+    printf("The result of add is: %d\n", intArgs[0] + intArgs[1]);
+}
+
+void multiply(void* args) {
+    int* intArgs = (int*)args;
+    printf("The result of multiply is: %d\n", intArgs[0] * intArgs[1]);
+}
+
+int main() {
     FunctionRegistry registry[10];
     int registrySize = 0;
-    
-    // Register the 'add' function
 
-    registerFunction(registry, &registrySize, "add", add, 10, 5);
-    
-    // Execute the 'add' function by name
+    int addArgs[] = {10, 5};             // Arguments for add function
+    int multiplyArgs[] = {10, 5};        // Arguments for multiply function
+    FloatIntArgs printArgs = {3.14f, 42}; // Arguments for printFloatInt function
 
+    // Register the 'add' and 'multiply' functions
+    registerFunction(registry, &registrySize, "add", add, addArgs);
+    registerFunction(registry, &registrySize, "multiply", multiply, multiplyArgs);
+    registerFunction(registry, &registrySize, "printFloatInt", printFloatInt, &printArgs);
+
+    // Execute the 'add', 'multiply', and 'printFloatInt' functions by name
     executeFunction(registry, registrySize, "add");
-    
-    
-    // Call each registered function with a delay of 3 seconds
+    executeFunction(registry, registrySize, "multiply");
+    executeFunction(registry, registrySize, "printFloatInt");
 
+    // Call each registered function with a delay of 3 seconds
     printf("\nCalling each registered function with a delay of 3 seconds:\n");
-    callFunction(registry, registrySize, 2);
-    
+    callFunction(registry, registrySize, 3);
+
     return 0;
 }
+
 
 
 
